@@ -13,6 +13,37 @@ The recommendation system is a two-stage pipeline: a lightweight retrieval model
   **Architecture note:** The two-tower neural network was chosen over simpler alternatives specifically for cold-start handling and catalogue size. At 3 million+ content items, brute-force similarity search is not viable at inference time. See [ADR-006](/decisions/adr-006-two-tower-ml) for the full decision record.
 </Info>
 
+## Recommendation pipeline
+
+```mermaid
+flowchart TD
+    subgraph Signals["Behavioural Signal Collection"]
+        ES[Engagement Service] -->|user.engagement.events| EC[Event Collector]
+        EC --> RD[(Redis — Online Features)]
+        EC --> PQ[(Parquet — Offline Store)]
+    end
+
+    subgraph Inference["Inference Pipeline — < 150ms total"]
+        REQ(["Client: GET /feed"]) --> CS[Content Service]
+        CS --> MS["Model Server\nTriton / TorchServe"]
+        MS -->|Feature lookup < 5ms| RD
+        MS --> S1["Stage 1: Retrieval\nTwo-Tower ANN Search\nTop 500 candidates — < 10ms"]
+        S1 --> S2["Stage 2: Ranking\nDLRM Model — < 80ms"]
+        S2 --> CS
+        CS -->|Personalised feed| REQ
+    end
+
+    subgraph Training["Offline Training Pipeline"]
+        PQ -->|Daily / Weekly batch| TR[Spark + Ray Cluster]
+        TR --> MV[MLflow Model Version]
+        MV --> CD["Canary 5% Traffic\n48h evaluation"]
+        CD -->|"p < 0.05 + bias audit pass"| FP([Full Promotion — 100% Traffic])
+    end
+
+    NEW[media.published] -->|New content| IDX["Embedding Index\nFAISS / ScaNN"]
+    IDX -.->|ANN search target| S1
+```
+
 ---
 
 ## Behavioural Signal Collection

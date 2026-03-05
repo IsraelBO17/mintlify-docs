@@ -18,6 +18,35 @@ The pipeline is designed for **progressive availability**: the lowest-quality va
   **Architecture note:** The pipeline is stateless at each stage. A stage consumes an upstream Kafka event, performs its work, and emits a downstream event. Stages fail independently and retry without restarting the entire pipeline. See [ADR-001](/decisions/adr-001-event-driven-pipeline) for the rationale for this design.
 </Info>
 
+## Pipeline overview
+
+```mermaid
+flowchart TD
+    A([Creator]) -->|POST /uploads/session| B[Upload Service]
+    B -->|Presigned URL + session_id| C[(Object Storage\nStaging Bucket)]
+    C -->|S3 completion event| D[Upload Ingestor\nFormat & Size Validation]
+    D -->|Rejected| X([Blocked / Quarantined])
+    D -->|Valid| E[Virus Scan\nClamAV]
+    E -->|Positive| X
+    E -->|Clean| F[Copyright Scanner\nAI Fingerprinting]
+    F -->|Match| X
+    F -->|media.copyright.cleared| G[Transcoding Orchestrator]
+    G --> H1[360p Worker\n~2 min]
+    G --> H2[480p – 1080p Workers]
+    G --> H3[4K GPU Worker]
+    H1 --> I[DRM Packager\nShaka + CEK from KMS]
+    H2 --> I
+    H3 --> I
+    I --> J[Residency Policy Engine]
+    J --> K1[(Global Hot Bucket)]
+    J --> K2[(Nigeria Residency Bucket)]
+    I --> L[Art Generator\nThumbnails & Cover Art]
+    I --> M[Elasticsearch Indexer]
+    K1 --> N[Content Service]
+    K2 --> N
+    N -->|media.published| P([Published])
+```
+
 ---
 
 ## Pipeline Stages

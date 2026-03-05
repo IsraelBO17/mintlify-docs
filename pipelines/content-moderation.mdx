@@ -13,6 +13,32 @@ Every content item submitted to the platform passes through an automated moderat
   Content in `UNDER_REVIEW` status is **not accessible to viewers**. The creator can see the item in their dashboard with status "Under Review" and an estimated resolution time. Immediate publication bypasses are not available to any role below `platform:admin`.
 </Warning>
 
+## Moderation pipeline
+
+```mermaid
+flowchart TD
+    A([Raw Media Available]) --> B[moderation.check.requested]
+    B --> C1[Harmful Imagery\nResNet / ViT]
+    B --> C2[Audio Analysis\nWhisper ASR + Classifier]
+    B --> C3[Hate Speech\nBERT Multilingual]
+    B --> C4[Misinformation\nKnowledge Graph]
+    B --> C5[Copyright\nFingerprinting]
+    B --> C6[Spam / Inauthentic\nHeuristics]
+    C1 & C2 & C3 & C4 & C5 & C6 --> D{Any flags?}
+    D -->|No| E([Ready for Publish])
+    D -->|Yes| F[Human Review Queue\n4h SLA / 30min escalated]
+    F --> G[Moderator Review\nAdmin Control Plane]
+    G --> H{Decision}
+    H -->|Approve| I([Published])
+    H -->|Remove| J[moderation.removed]
+    H -->|Age-gate| K([Restricted to 18+])
+    H -->|Request edit| L([Creator re-upload])
+    J --> M{Appeal within\n14 days?}
+    M -->|Yes| N[Escalated Queue\nDifferent reviewer]
+    M -->|No| O([Removal final])
+    N --> G
+```
+
 ---
 
 ## Automated Moderation Checks

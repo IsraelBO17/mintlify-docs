@@ -15,6 +15,43 @@ All premium content is protected by a multi-DRM system using CMAF (Common Media 
   **Architecture note:** CMAF CENC+CBCS dual-encryption was selected to serve iOS (FairPlay, CBCS only), Android/Chrome (Widevine, CENC), and desktop/Smart TV (PlayReady, CENC) from a single segment set. See [ADR-004](/decisions/adr-004-multi-drm-cmaf) for the full decision record.
 </Info>
 
+## Key hierarchy
+
+```mermaid
+flowchart LR
+    MEK["Master Encryption Key\nHSM only — Annual rotation"]
+    KEK["Key Encryption Key\nKMS — Per content category"]
+    CEK["Content Encryption Key\nKey Store DB — Per content item"]
+    MEK -->|encrypts| KEK
+    KEK -->|encrypts| CEK
+    CEK -->|used by| SP[Shaka Packager\nCMAF CENC + CBCS]
+    SP --> SEG[(Encrypted Segments\nCDN Delivery)]
+```
+
+## License acquisition flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client Player
+    participant PS as Playback Service
+    participant KS as Key Store
+    participant KMS
+    participant DRM as Multi-DRM Provider
+
+    C->>PS: GET /api/v1/playback/token/{contentId} + JWT
+    PS->>PS: Validate entitlement, region, concurrent streams
+    PS-->>C: Signed license URL (TTL: 30s)
+    C->>DRM: License challenge + PSSH data + signed token
+    DRM->>PS: Key retrieval callback
+    PS->>KS: Fetch encrypted CEK
+    KS-->>PS: Encrypted CEK
+    PS->>KMS: Decrypt CEK via KEK
+    KMS-->>PS: Plaintext CEK
+    PS-->>DRM: CEK
+    DRM-->>C: DRM License
+    C->>C: Decrypt segments in hardware TEE
+```
+
 ---
 
 ## DRM System Comparison

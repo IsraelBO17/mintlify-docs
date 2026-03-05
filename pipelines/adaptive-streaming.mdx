@@ -13,6 +13,35 @@ All MCSP content — video and audio — is delivered via CDN using adaptive bit
   **Architecture note:** CDN-first delivery is an architectural constraint, not a performance optimisation. At 150,000 peak concurrent streams, direct object storage would not be viable from a cost or latency perspective. See [ADR-002](/decisions/adr-002-cdn-first-delivery) for the full decision record.
 </Info>
 
+## Request and delivery flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant PS as Playback Service
+    participant DL as DRM License Server
+    participant CDN
+    participant OS as Object Storage
+
+    C->>PS: GET /api/v1/play/{contentId} + Bearer token
+    PS->>PS: Validate entitlement & geo-restriction
+    PS->>DL: gRPC — Request DRM session token
+    DL-->>PS: DRM token (5-min TTL)
+    PS-->>C: CDN signed URL + drm_token + license_server_url
+    C->>CDN: Fetch manifest (.m3u8 / .mpd)
+    CDN->>CDN: Validate HMAC signature
+    CDN-->>C: Manifest with segment URLs
+    C->>DL: License challenge + drm_token
+    DL-->>C: DRM license (CEK wrapped in device key)
+    C->>CDN: Fetch fMP4 segments (ABR quality selection)
+    alt Cache miss
+        CDN->>OS: Fetch segments from origin
+        OS-->>CDN: Segments
+    end
+    CDN-->>C: Encrypted fMP4 segments
+    C->>C: Decrypt & render in hardware secure context
+```
+
 ---
 
 ## Packaging Format Matrix

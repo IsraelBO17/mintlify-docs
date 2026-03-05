@@ -13,6 +13,38 @@ The Billing & Payments pipeline handles three independent revenue flows: subscri
   **Architecture note:** Two separate payment processors are operated in parallel — Paystack for NGN-denominated accounts (Nigeria domestic) and Stripe for USD-denominated accounts (diaspora / international). FX conversion rates are locked at the start of each payout period to prevent mid-period rate fluctuations from affecting creator earnings. See [ADR-007](/decisions/adr-007-dual-currency-payout) for the full decision record.
 </Info>
 
+## Subscription payment flow
+
+```mermaid
+flowchart TD
+    A([Renewal Trigger]) --> B[billing.charge.requested]
+    B --> C{Subscriber currency}
+    C -->|NGN| D[Paystack API]
+    C -->|USD| E[Stripe API]
+    D --> F{Charge result}
+    E --> F
+    F -->|Success| G[payment.processed]
+    F -->|Failure| H[Temporal Retry\nmax 3 attempts]
+    H -->|All retries exhausted| I[payment.failed\n7-day grace period]
+    G --> J([Subscription ACTIVE])
+    I --> K[Subscription PAST_DUE\nUser notified]
+    K --> L{Resolved within\n7 days?}
+    L -->|Yes| J
+    L -->|No| M([Suspended — Access revoked])
+```
+
+## Revenue share calculation
+
+```mermaid
+flowchart TD
+    A[Gross Platform Revenue\nMonth-end] --> B[Deduct platform fee\n+ processing costs]
+    B --> C[Distributable Pool]
+    C --> D["Per-creator share\n= pool × creator_plays ÷ total_plays"]
+    D --> E{Above minimum\nthreshold?}
+    E -->|NGN ≥ 5,000 / USD ≥ 10| F[Payout via Paystack / Stripe\nFX rate locked at period start]
+    E -->|Below threshold| G([Rolled to next period])
+```
+
 ---
 
 ## Subscription Billing Model
