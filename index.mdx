@@ -1,0 +1,66 @@
+---
+title: "MTN Cloud Streaming Platform"
+description: "Technical architecture documentation for MCSP — a large-scale, multi-tenant SaaS streaming service built on MTN infrastructure"
+---
+
+# MTN Cloud Streaming Platform
+
+MCSP is a large-scale, multi-tenant SaaS video and audio streaming service built exclusively on MTN cloud infrastructure. It delivers content to Nigerian domestic audiences and the international diaspora under a dual-tier monetization model: ad-supported free viewing and ad-free paid subscriptions.
+
+<CardGroup cols={2}>
+  <Card title="Platform Overview" icon="layer-group" href="/overview/introduction">
+    Scale assumptions, capabilities, multi-tenant model, and revenue streams
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/architecture/high-level-diagram">
+    High-level diagrams, layer breakdown, and communication patterns
+  </Card>
+  <Card title="Services" icon="cubes" href="/services/overview">
+    Application-layer microservices and their responsibilities
+  </Card>
+  <Card title="Pipelines" icon="arrow-progress" href="/pipelines/media-ingestion">
+    End-to-end system flows for media processing and delivery
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Nigeria Data Residency" icon="flag" href="/infrastructure/data-residency">
+    Verifiable data sovereignty with MTN Cloud infrastructure
+  </Card>
+  <Card title="Multi-DRM Protection" icon="lock" href="/pipelines/drm-content-security">
+    Widevine, FairPlay, and PlayReady with CMAF encryption
+  </Card>
+  <Card title="Event-Driven Pipeline" icon="arrows-split-up-and-left" href="/decisions/adr-001-event-driven-pipeline">
+    Kafka-based async processing for media ingestion and transcoding
+  </Card>
+  <Card title="ML Recommendations" icon="brain" href="/pipelines/ml-recommendations">
+    Two-tower neural network with ANN for personalized content retrieval
+  </Card>
+</CardGroup>
+
+## Architecture Decision Records
+
+Explore the technical decisions that shaped MCSP's architecture:
+
+<CardGroup cols={2}>
+  <Card title="ADR Overview" icon="scale-balanced" href="/decisions/overview">
+    Complete index of architecture decisions with context and tradeoffs
+  </Card>
+  <Card title="Technical Reference" icon="book" href="/reference/glossary">
+    Glossary, Kafka topics, storage model, and risk register
+  </Card>
+</CardGroup>
+
+## Document Scope
+
+This documentation set is the authoritative technical reference for MCSP v1.0. It is written for:
+
+- **Platform engineers** onboarding to the codebase and infrastructure
+- **Architects** evaluating design decisions and extension points
+- **Security reviewers** conducting cloud security and compliance audits
+- **Technical stakeholders** conducting due diligence
+
+<Note>
+  This is a confidential technical architecture document. Access is restricted to authorized personnel only.
+</Note>
